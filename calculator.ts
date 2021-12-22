@@ -1,29 +1,11 @@
-type Sheet = GoogleAppsScript.Spreadsheet.Sheet;
 
-function CalculateRent() {
-    const input: RentInput = readInput(SpreadsheetApp.getActiveSheet());
-    const output: RentOutput = (new RentCalculator()).Calculate(input);
-    writeOutput(output);
-}
-  
-function readInput(sheet: Sheet): RentInput {
-    return new RentInput();
-}
+import { ReadInput } from './read_input';
+import { WriteOutput } from './write_output';
+import { CalculateRent } from './rent_calculator';
 
-function writeOutput(output: RentOutput) {
-
-}
-
-class RentInput {
-
-}
-
-class RentOutput {
-
-}
-
-class RentCalculator {
-    Calculate(input: RentInput): RentOutput {
-        return new RentOutput();
-    }
+export function CalculateRentForActiveSheet() {
+    WriteOutput(
+        CalculateRent(
+            ReadInput(
+                SpreadsheetApp.getActiveSheet())));
 }

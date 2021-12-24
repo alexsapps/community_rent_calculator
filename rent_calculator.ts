@@ -11,8 +11,12 @@ namespace RentCalculation {
     type RentOutput = Models.RentOutput;
     const RentConfiguration = Models.RentConfiguration;
     type RentConfiguration = Models.RentConfiguration;
-    const ResidentPeriodRent = Models.ResidentPeriodRent;
-    type ResidentPeriodRent = Models.ResidentPeriodRent;
+    type ResidentPeriodSubtotal = Models.ResidentPeriodSubtotal;
+    const ResidentPeriodSubtotal = Models.ResidentPeriodSubtotal;
+    type ResidentPeriodAdjustedTotal = Models.ResidentPeriodAdjustedTotal;
+    const ResidentPeriodAdjustedTotal = Models.ResidentPeriodAdjustedTotal;
+    type ResidentMonthTotal = Models.ResidentMonthTotal;
+    const ResidentMonthTotal = Models.ResidentMonthTotal;
 
     export function CalculateRent(input: RentInput): RentOutput {
         return (new RentCalculator()).Calculate(input);
@@ -38,7 +42,7 @@ namespace RentCalculation {
 
             Logger.log(`Calculating period ${periodInput.firstDay.toLocaleDateString()}`);
 
-            const daysInPeriod = dateDiff(periodInput.firstDay, periodInput.lastDay);
+            const daysInPeriod = dateDiff(periodInput.firstDay, periodInput.lastDay) + 1;
             const daysInMonth = getDaysInMonth(periodInput.firstDay);
 
             const periodMonthRatio = daysInPeriod / daysInMonth;
@@ -48,20 +52,30 @@ namespace RentCalculation {
             Logger.log(`Cost of period ${periodCost}`);
 
             // First, calculate subtotals based on base prices.
-            const residentRentSubtotals = new Array<ResidentPeriodRent>();
+            const residentSubtotals = new Array<ResidentPeriodSubtotal>();
             let costSubtotal = 0;
             let totalResidents = 0;
             for (const room of periodInput.roomResidency) {
-                const roomCost =
-                    config.rooms.find(r => r.name === room.roomName).basePrice;
+                const basePrice = config.rooms.find(r => r.name === room.roomName).basePrice;
+                const basePriceWithPerPersonFees =
+                    basePrice
+                    + (config.extraPersonBaseSurcharge * (room.residents.length - 1));
                 for (const resident of room.residents) {
-                    const residencyCost = resident.costRatio * roomCost * periodMonthRatio;
+                    const residentSubtotal = basePriceWithPerPersonFees * resident.costRatio * periodMonthRatio;
 
-                    residentRentSubtotals.push(new ResidentPeriodRent(resident.residentName, residencyCost));
+                    residentSubtotals.push(new ResidentPeriodSubtotal(
+                        resident.residentName,
+                        residentSubtotal,
+                        // -- Calculations for `residencyCost` --
+                        basePrice,
+                        basePriceWithPerPersonFees,
+                        resident.costRatio,
+                        periodMonthRatio
+                        ));
 
-                    Logger.log(`${resident.residentName}'s subtotal ${residencyCost}`);
+                    Logger.log(`${resident.residentName}'s subtotal ${residentSubtotal}`);
 
-                    costSubtotal += residencyCost;
+                    costSubtotal += residentSubtotal;
                     totalResidents++;
                 }
             }
@@ -72,15 +86,36 @@ namespace RentCalculation {
             const totalOverage = costSubtotal - periodCost;
             const overagePerPerson = totalOverage / totalResidents;
             Logger.log(`Overage: ${totalOverage} (${overagePerPerson} per person)`)
-            const residentRent: ResidentPeriodRent[] = residentRentSubtotals.map(
-                rent => {
-                    const adjustedRent = rent.cost - overagePerPerson;
-                    Logger.log(`${rent.residentName}: ${adjustedRent}`)
-                    return new ResidentPeriodRent(
-                        rent.residentName, adjustedRent);
+            const residentAdjustedTotals: ResidentPeriodAdjustedTotal[] = residentSubtotals.map(
+                residentSubtotal => {
+                    const adjustedRent = residentSubtotal.cost - overagePerPerson;
+                    Logger.log(`${residentSubtotal.residentName}: ${adjustedRent}`)
+                    return new ResidentPeriodAdjustedTotal(
+                        residentSubtotal.residentName,
+                        adjustedRent,
+                        // -- Calculations for `adjustedRent` --
+                        residentSubtotal.cost,
+                        overagePerPerson);
                 });
 
-            return new PeriodOutput(periodInput.firstDay, periodInput.lastDay, residentRent);
+            return new PeriodOutput(
+                periodInput.firstDay, 
+                periodInput.lastDay,
+                
+                // -- Internal calculations --
+
+                daysInPeriod,
+                daysInMonth,
+                periodMonthRatio,
+                periodCost,
+                costSubtotal,
+                totalOverage,
+                overagePerPerson,
+
+                // -- Data members --
+
+                residentSubtotals,
+                residentAdjustedTotals);
         }
 
         calculateMonthTotals(periodOutputs: PeriodOutput[]): MonthTotals {
@@ -89,7 +124,7 @@ namespace RentCalculation {
             Logger.log(`Calculating monthly totals across ${periodOutputs.length} periods.`);
 
             // For each resident, merely calculate a total across all periods.
-            periodOutputs.map(p => p.residentPeriodOutput)
+            periodOutputs.map(p => p.residentAdjustedTotals)
                 .forEach(period => period.forEach(resident => {
                     const newTotal = 
                         (residentTotals.get(resident.residentName) ?? 0)
@@ -97,10 +132,10 @@ namespace RentCalculation {
                     residentTotals.set(resident.residentName, newTotal);
                 }));
 
-            const monthTotals: ResidentPeriodRent[] = Array.from(residentTotals)
+            const monthTotals: ResidentMonthTotal[] = Array.from(residentTotals)
                 .map(([k, v]) => {
                     Logger.log(`${k}: ${v}`);
-                    return new ResidentPeriodRent(k, v);
+                    return new ResidentMonthTotal(k, v);
                 });
 
             return new MonthTotals(monthTotals);

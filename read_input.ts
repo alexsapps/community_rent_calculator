@@ -4,8 +4,8 @@ namespace InputReading {
     const RentConfiguration = Models.RentConfiguration;
     type RentInput = Models.RentInput;
     const RentInput = Models.RentInput;
-    type RoomInput = Models.RoomInput;
-    const RoomInput = Models.RoomInput;
+    type RoomConfiguration = Models.RoomConfiguration;
+    const RoomConfiguration = Models.RoomConfiguration;
     type RoomResidency = Models.RoomResidency;
     const RoomResidency = Models.RoomResidency;
     type RoomResident = Models.RoomResident;
@@ -118,7 +118,7 @@ namespace InputReading {
                 Logger.log(`Read period starting ${header.toLocaleDateString()}`);
             } else {
                 if (header !== OutputWriting.OUTPUT_MARKER) {
-                    throw `Non-date value found in column header; should be start of period: ${header}`
+                    throw `Non-date value found in column ${columnIndex} header; should be start of period: ${header}`
                 }
                 break;
             }
@@ -127,9 +127,9 @@ namespace InputReading {
         return periodDates;
     }
 
-    function readRoomMetadataFromFirstColumns(range: Range): [RoomInput[], number] {
+    function readRoomMetadataFromFirstColumns(range: Range): [RoomConfiguration[], number] {
         let rowIndex = FIRST_ROOM_ROW_INDEX;
-        const rooms = new Array<RoomInput>();
+        const rooms = new Array<RoomConfiguration>();
         while (true) {
             if (rowIndex > range.getLastRow()) {
                 throw `Missing configuration that should appear at the bottom of the room/period matrix`;
@@ -142,7 +142,7 @@ namespace InputReading {
         return [rooms, rowIndex];
     }
 
-    function readRoomNameAndBasePrice(range: Range, rowIndex: number): RoomInput | null {
+    function readRoomNameAndBasePrice(range: Range, rowIndex: number): RoomConfiguration | null {
         const rowHeaderCell = range.getCell(rowIndex, 1);
         if (rowHeaderCell.getTextStyle().isBold()) return null;
 
@@ -157,7 +157,7 @@ namespace InputReading {
         }
 
         Logger.log("Read room config; name: " + rowHeader + "; base price: " + basePrice);
-        return new RoomInput(rowHeader, basePrice);
+        return new RoomConfiguration(rowHeader, basePrice);
     }
 
 
@@ -194,11 +194,11 @@ namespace InputReading {
         return totalRent;
     }
 
-    function readPeriods(range: Range, rooms: RoomInput[], periodDates: Date[]): PeriodInput[] {
+    function readPeriods(range: Range, rooms: RoomConfiguration[], periodDates: Date[]): PeriodInput[] {
         const periods = new Array<PeriodInput>(periodDates.length);
         for (let i = 0; i < periodDates.length; i++) {
             const firstDay = periodDates[i];
-            const lastDay = i < periodDates.length - 1 ? periodDates[i + 1] : lastDayOfMonth(firstDay);
+            const lastDay = i < periodDates.length - 1 ? dayBefore(periodDates[i + 1]) : lastDayOfMonth(firstDay);
             Logger.log(`Reading period ${firstDay.toLocaleDateString()} thru ${lastDay.toLocaleDateString()}`);
             periods[i] = new PeriodInput(
                 firstDay,
@@ -208,7 +208,7 @@ namespace InputReading {
         return periods;
     }
 
-    function readPeriodResidency(range: Range, columnIndex: number, rooms: RoomInput[]): RoomResidency[] {
+    function readPeriodResidency(range: Range, columnIndex: number, rooms: RoomConfiguration[]): RoomResidency[] {
         const residencies = new Array<RoomResidency>(rooms.length);
         for (let i = 0; i < rooms.length; i++) {
             const room = rooms[i];
@@ -284,9 +284,13 @@ namespace InputReading {
         return residents;
     }
 
-    function lastDayOfMonth(date: Date) {
+    function lastDayOfMonth(date: Date): Date {
         // Day 0 means last day of prior month. Pass month + 1 to get last day of
         // current month.
         return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    }
+
+    function dayBefore(date: Date): Date {
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1);
     }
 }

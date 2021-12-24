@@ -71,7 +71,7 @@ namespace Models {
             public readonly totalRent: number,
 
             /** Configuration of rooms in the residence */
-            public readonly rooms: RoomInput[],
+            public readonly rooms: RoomConfiguration[],
 
             /**
              * Surcharge on monthly base rent price for each additional roommate in
@@ -83,7 +83,7 @@ namespace Models {
     /**
      * A room in a residence and its monthly configuration.
      */
-    export class RoomInput {
+    export class RoomConfiguration {
         constructor(
             public readonly name: string,
             public readonly basePrice: number
@@ -107,17 +107,64 @@ namespace Models {
         constructor(
             public readonly firstDate: Date,
             public readonly lastDate: Date,
-            public readonly residentPeriodOutput: ResidentPeriodRent[],
+            
+            // -- Internal calculations --
+
+            public readonly calculatedDaysInPeriod: number,
+            public readonly calculatedDaysInMonth: number,
+            public readonly calculatedPeriodMonthRatio: number,
+            public readonly calculatedPeriodCost: number,
+            public readonly calculatedSubtotal: number,
+            public readonly calculatedOverage: number,
+            public readonly calculatedOveragePerPerson: number,
+
+            // -- Data members --
+
+            public readonly residentSubtotals: ResidentPeriodSubtotal[],
+            public readonly residentAdjustedTotals: ResidentPeriodAdjustedTotal[],
         ) { }
     }
 
     /**
-     * Rent owed by a resident in the context of a period.
+     * Subtotal of rent calculations for a resident in the context of a
+     * particular period.
      */
-    export class ResidentPeriodRent {
+    export class ResidentPeriodSubtotal {
         constructor(
             public readonly residentName: string,
             public readonly cost: number,
+
+            // -- Calculations of above cost --
+
+            public readonly roomBasePrice: number,
+            public readonly roomBasePriceWithExtraPersonFees: number,
+            public readonly residentRoomProportion: number,
+            public readonly periodMonthProportion: number,
+        ) { }
+    }
+
+    /**
+     * Rent owed by a resident in the context of a particular period.
+     */
+     export class ResidentPeriodAdjustedTotal {
+        constructor(
+            public readonly residentName: string,
+            public readonly cost: number,
+
+            // -- Calculations of above cost --
+
+            public readonly subtotal: number,
+            public readonly adjustment: number,
+        ) { }
+    }
+
+    /**
+     * Rent owed by a resident in the context of a particular month.
+     */
+     export class ResidentMonthTotal {
+        constructor(
+            public readonly residentName: string,
+            public readonly cost: number
         ) { }
     }
 
@@ -130,7 +177,7 @@ namespace Models {
             /**
              * Rent owed by the residents for a full month perio
              */
-            public readonly residentPeriodOutput: ResidentPeriodRent[],
+            public readonly residentPeriodOutput: ResidentMonthTotal[],
         ) { };
     }
 }

@@ -23,7 +23,9 @@ namespace RentCalculation {
      */
     class RentCalculator {
         Calculate(input: RentInput): RentOutput {
-            const outputPeriods = input.periods.map(i => this.calculateRentPeriod(i, input.config));
+            const outputPeriods =
+                // Each period is calculated in isolation.
+                input.periods.map(i => this.calculateRentPeriod(i, input.config));
             const monthTotals = this.calculateMonthTotals(outputPeriods);
 
             return new RentOutput(outputPeriods, monthTotals);
@@ -34,12 +36,18 @@ namespace RentCalculation {
                 throw 'All days in period must be in the same month.'
             }
 
+            Logger.log(`Calculating period ${periodInput.firstDay.toLocaleDateString()}`);
+
             const daysInPeriod = dateDiff(periodInput.firstDay, periodInput.lastDay);
             const daysInMonth = getDaysInMonth(periodInput.firstDay);
 
-            const periodMonthRatio = daysInPeriod * daysInMonth;
+            const periodMonthRatio = daysInPeriod / daysInMonth;
             const periodCost = config.totalRent * periodMonthRatio;
 
+            Logger.log(`Days in period ${daysInPeriod} / ${daysInMonth}`);
+            Logger.log(`Cost of period ${periodCost}`);
+
+            // First, calculate subtotals based on base prices.
             const residentRentSubtotals = new Array<ResidentPeriodRent>();
             let costSubtotal = 0;
             let totalResidents = 0;
@@ -51,35 +59,49 @@ namespace RentCalculation {
 
                     residentRentSubtotals.push(new ResidentPeriodRent(resident.residentName, residencyCost));
 
+                    Logger.log(`${resident.residentName}'s subtotal ${residencyCost}`);
+
                     costSubtotal += residencyCost;
                     totalResidents++;
                 }
             }
 
-            // Calculate and apply discounts / surcharges.
+            // Adjust rent such that it adds up to this period's proportion of
+            // the total monthly rent. This is done by adding or subtracting an
+            // equal amount for each resident.
             const totalOverage = costSubtotal - periodCost;
             const overagePerPerson = totalOverage / totalResidents;
+            Logger.log(`Overage: ${totalOverage} (${overagePerPerson} per person)`)
             const residentRent: ResidentPeriodRent[] = residentRentSubtotals.map(
-                rent => new ResidentPeriodRent(
-                    rent.residentName, rent.cost - overagePerPerson))
+                rent => {
+                    const adjustedRent = rent.cost - overagePerPerson;
+                    Logger.log(`${rent.residentName}: ${adjustedRent}`)
+                    return new ResidentPeriodRent(
+                        rent.residentName, adjustedRent);
+                });
 
             return new PeriodOutput(periodInput.firstDay, periodInput.lastDay, residentRent);
         }
 
         calculateMonthTotals(periodOutputs: PeriodOutput[]): MonthTotals {
-            const totals = new Map<string, number>();
+            const residentTotals = new Map<string, number>();
 
+            Logger.log(`Calculating monthly totals across ${periodOutputs.length} periods.`);
+
+            // For each resident, merely calculate a total across all periods.
             periodOutputs.map(p => p.residentPeriodOutput)
-                .forEach(pr => pr.forEach(rr => {
-                    const cost = totals.get(rr.residentName);
-                    totals.set(rr.residentName, cost + rr.cost);
-                }
-                ));
+                .forEach(period => period.forEach(resident => {
+                    const newTotal = 
+                        (residentTotals.get(resident.residentName) ?? 0)
+                        + resident.cost;
+                    residentTotals.set(resident.residentName, newTotal);
+                }));
 
-            const monthTotals = new Array<ResidentPeriodRent>();
-            totals.forEach((v, k) => {
-                monthTotals.push(new ResidentPeriodRent(k, v));
-            });
+            const monthTotals: ResidentPeriodRent[] = Array.from(residentTotals)
+                .map(([k, v]) => {
+                    Logger.log(`${k}: ${v}`);
+                    return new ResidentPeriodRent(k, v);
+                });
 
             return new MonthTotals(monthTotals);
         }

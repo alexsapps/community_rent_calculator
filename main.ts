@@ -3,10 +3,13 @@
 // https://github.com/google/clasp/blob/master/docs/typescript.md#the-namespace-statement-workaround
 namespace Main {
     export function CalculateRentForActiveSheet() {
-        OutputWriting.WriteOutput(
-            RentCalculation.CalculateRent(
-                InputReading.ReadInput(
-                    SpreadsheetApp.getActiveSheet())));
+        const sheet = SpreadsheetApp.getActiveSheet();
+
+        const {input, columnIndex} = InputReading.ReadInput(sheet);
+
+        const output = RentCalculation.CalculateRent(input);
+
+        OutputWriting.WriteOutput(output, sheet, columnIndex);
     }
 }
 

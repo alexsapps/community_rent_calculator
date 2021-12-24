@@ -17,7 +17,40 @@ namespace InputReading {
     const FIRST_PERIOD_COLUMN_INDEX = 3;  // Column "C"
     const FIRST_ROOM_ROW_INDEX = 2;  // Row 2
 
-    export function ReadInput(sheet: Sheet): RentInput {
+    /**
+     * Reads rent calculator input from a Google Sheet.
+     * 
+     * Reading starts from cell A1. Column A contains rooms, colum B contains
+     * monthly base prices for those rooms, and subsequent columns contain names
+     * of residents in those rooms for certain parts of the month called
+     * 'periods'.
+     * 
+     * The first row is headers only. Each column C and later represents a
+     * period. The period columns must be in chronological order. The header
+     * value of each period is a date representing the first day of the period.
+     * The last day of the period is the day before the first day of the
+     * following period, except the last day of the last period is always the
+     * last day of the month. (You can add a blank dummy period at the end to
+     * omit the end of a month from calculations.)
+     * 
+     * The interior of the table contains names of residents separated by
+     * semicolons. The ratio of each resident's responsibility can be added
+     * after their name in parentheses. For example, "Alice (0.6); Bob (0.4)"
+     * means that a room is shared by Alice and Bob with Alice paying 60% of the
+     * room and Bob paying 40% for that period. If explicit ratios add up to 1
+     * or less, then the remaining ratio is split evenly by the remaining
+     * residents. If the explicit ratios total more than one, then the remaining
+     * residents are assigned a ratio of 0. (The the extra amount will cause
+     * residents in other rooms to pay less as part of the rent calculation
+     * adjustment/discount mechanism.)
+     * 
+     * @param sheet The sheet to read rent input from.
+     * @returns two values, (1) rent input read from the sheet in the form of
+     * the `RentInput` object model, and (2) the column index of the first
+     * column after the end of the input. (This may be useful for writing the
+     * output, for example.)
+     */
+    export function ReadInput(sheet: Sheet): {input: RentInput, columnIndex: number} {
         Logger.log("Reading rent calculation from sheet");
         // Read entire sheet since it is probably small.
         const range = sheet.getRange(
@@ -55,7 +88,11 @@ namespace InputReading {
         // ==================================
 
         const config = new RentConfiguration(totalRent, rooms, extraPersonBaseSurcharge);
-        return new RentInput(periods, config);
+
+        return {
+            input: new RentInput(periods, config),
+            columnIndex: FIRST_PERIOD_COLUMN_INDEX + periodDates.length,
+        };
     }
 
     function verifyHeaders(range: Range) {
@@ -70,17 +107,17 @@ namespace InputReading {
         }
     }
 
-    function readPeriodDatesFromRowHeaders(range: Range) {
+    function readPeriodDatesFromRowHeaders(range: Range): Date[] {
         const periodDates = new Array<Date>();
         let columnIndex = FIRST_PERIOD_COLUMN_INDEX;
-        while (true) {
+        while (columnIndex <= range.getLastColumn()) {
             const periodHeader = range.getCell(1, columnIndex);
             const header = periodHeader.getValue();
             if (header instanceof Date) {
                 periodDates.push(header);
                 Logger.log(`Read period starting ${header.toLocaleDateString()}`);
             } else {
-                if (header != "OUTPUT") {
+                if (header !== OutputWriting.OUTPUT_MARKER) {
                     throw `Non-date value found in column header; should be start of period: ${header}`
                 }
                 break;
@@ -94,6 +131,9 @@ namespace InputReading {
         let rowIndex = FIRST_ROOM_ROW_INDEX;
         const rooms = new Array<RoomInput>();
         while (true) {
+            if (rowIndex > range.getLastRow()) {
+                throw `Missing configuration that should appear at the bottom of the room/period matrix`;
+            }
             const room = readRoomNameAndBasePrice(range, rowIndex);
             if (room == null) break;
             rooms.push(room)
@@ -203,6 +243,10 @@ namespace InputReading {
 
         const residentStrings: string[] = residentsString.split(';');
         let roomCostRatioSum = 0;
+
+        // Indices of residents not having a cost ratio specified.
+        const defaultRatioResidents: number[] = [];
+
         for (let residentString of residentStrings) {
             residentString = residentString.trim();
             const captures: string[] = ROOM_RESIDENCY_REGEX.exec(residentString);
@@ -210,19 +254,31 @@ namespace InputReading {
                 throw `Room residency value does not match regex; value "${residentString}", column ${columnIndex}, row ${rowIndex}`;
             }
             const name: string = captures[1].trim();
-            const costRatioStr: string = captures[2] !== undefined ? captures[2].trim() : '1';
-            const costRatio = Number(costRatioStr);
+            const costRatioStr: string = captures[2] !== undefined ? captures[2].trim() : '';
+            const costRatio: number|null = costRatioStr !== '' ? Number(costRatioStr) : null;
             if (costRatio === NaN) {
                 throw `Invalid cost ratio "${costRatio}"; must be 0.#, column ${columnIndex}, row ${rowIndex}`;
             }
-            Logger.log(`${name} pays ${costRatio} of ${roomName}`);
+            Logger.log(`${name} pays ${costRatio === null ? '<default>' : costRatio} of ${roomName}`);
             residents.push(new RoomResident(name, costRatio));
 
             roomCostRatioSum += costRatio;
+            if (costRatio === null) {
+                defaultRatioResidents.push(residents.length - 1);
+            }
         }
 
-        if (roomCostRatioSum !== 1) {
-            Logger.log(`Warning: cost ratio for room ${roomName} does not sum to 1; sums to ${roomCostRatioSum}`);
+        if (defaultRatioResidents.length === 0) {
+            if (roomCostRatioSum !== 1) {
+                Logger.log(`Warning: cost ratio for room ${roomName} does not sum to 1; sums to ${roomCostRatioSum}`);
+            }
+        } else {
+            const missingCost = roomCostRatioSum > 1 ? 0 : 1 - roomCostRatioSum;
+            const missingCostPerPerson = missingCost / defaultRatioResidents.length;
+            defaultRatioResidents.forEach(i => {
+                residents[i] = new RoomResident(residents[i].residentName, missingCostPerPerson);
+                Logger.log(`Applied calculated default ratio of ${missingCostPerPerson} to ${residents[i].residentName}`);
+            });
         }
 
         return residents;

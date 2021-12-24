@@ -16,3 +16,10 @@ namespace Main {
 function CalculateRentForActiveSheet() {
     Main.CalculateRentForActiveSheet();
 }
+
+function onOpen() {
+    var ui = SpreadsheetApp.getUi();
+    ui.createMenu('Rent Calculator')
+        .addItem('Calculate current sheet', 'CalculateRentForActiveSheet')
+        .addToUi();
+}

@@ -95,7 +95,7 @@ namespace RentCalculation {
                         adjustedRent,
                         // -- Calculations for `adjustedRent` --
                         residentSubtotal.cost,
-                        overagePerPerson);
+                        0 - overagePerPerson);
                 });
 
             return new PeriodOutput(

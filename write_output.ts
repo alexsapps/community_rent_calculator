@@ -64,13 +64,14 @@ namespace OutputWriting {
 
         const numResidents = monthlyTotals.residentPeriodOutput.length;
 
-        const outputValues = new Array<Array<unknown>>();
+        const dataValues = new Array<Array<unknown>>();
+        monthlyTotals.residentPeriodOutput.sort((a, b) => a.residentName.localeCompare(b.residentName));
         for (const resident of monthlyTotals.residentPeriodOutput) {
-            outputValues.push(new Array<unknown>(resident.residentName, resident.cost));
+            dataValues.push(new Array<unknown>(resident.residentName, resident.cost));
         }
 
         sheet.getRange(rowIndex, columnIndex, numResidents, 2)
-            .setValues(outputValues);
+            .setValues(dataValues);
         sheet.getRange(rowIndex, columnIndex + 1, numResidents, 1)
             .setNumberFormat(DOLLAR_FORMAT)
 
@@ -146,6 +147,7 @@ namespace OutputWriting {
         rowIndex++;
 
         const COST_COLUMN = columnIndex + SUBTOTALS_TABLE_WIDTH - 1;
+        period.residentSubtotals.sort((a, b) => a.residentName.localeCompare(b.residentName));
         for (const resident of period.residentSubtotals) {
             sheet.getRange(rowIndex, columnIndex + 0, 1, 1).setValue(resident.residentName);
             sheet.getRange(rowIndex, columnIndex + 1, 1, 1).setValue(resident.roomBasePrice).setNumberFormat(DOLLAR_FORMAT);
@@ -153,7 +155,7 @@ namespace OutputWriting {
             sheet.getRange(rowIndex, columnIndex + 3, 1, 1).setValue(resident.residentRoomProportion).setNumberFormat(RATIO_FORMAT);
             sheet.getRange(rowIndex, columnIndex + 4, 1, 1).setValue(resident.periodMonthProportion).setNumberFormat(RATIO_FORMAT);
             sheet.getRange(rowIndex, COST_COLUMN, 1, 1).setValue(resident.cost).setNumberFormat(DOLLAR_FORMAT);
-            
+
             rowIndex++;
         }
 
@@ -188,12 +190,13 @@ namespace OutputWriting {
             .setFontStyle('italic');
         rowIndex++;
 
+        period.residentAdjustedTotals.sort((a, b) => a.residentName.localeCompare(b.residentName));
         for (const resident of period.residentAdjustedTotals) {
             sheet.getRange(rowIndex, columnIndex + 0, 1, 1).setValue(resident.residentName);
             sheet.getRange(rowIndex, columnIndex + 1, 1, 1).setValue(resident.subtotal).setNumberFormat(DOLLAR_FORMAT);
             sheet.getRange(rowIndex, columnIndex + 2, 1, 1).setValue(resident.adjustment).setNumberFormat(DOLLAR_FORMAT);
             sheet.getRange(rowIndex, columnIndex + 3, 1, 1).setValue(resident.cost).setNumberFormat(DOLLAR_FORMAT);
-            
+
             rowIndex++;
         }
 

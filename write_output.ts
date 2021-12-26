@@ -92,7 +92,7 @@ namespace OutputWriting {
     }
 
     function writePeriods(periods: PeriodOutput[], sheet: Sheet, rowIndex: number, columnIndex: number): { rowIndex: number, columnIndex: number } {
-        const NUM_COLUMNS = Math.max(SUBTOTALS_TABLE_WIDTH, ADJUSTED_TOTALS_TABLE_WIDTH) + 1 /* margin */;
+        const NUM_COLUMNS = Math.max(SUBTOTALS_TABLE_WIDTH, ADJUSTED_TOTALS_TABLE_WIDTH);
         sheet.getRange(rowIndex, columnIndex, 1, 1)
             .setValue('PERIODIC BREAKDOWN')
             .setFontWeight('bold');
@@ -104,7 +104,7 @@ namespace OutputWriting {
             rowIndex++;  // Blank line between periods
         }
 
-        columnIndex += NUM_COLUMNS;
+        columnIndex += NUM_COLUMNS + 1 /* 1 col margin */;
         return { rowIndex, columnIndex };
     }
 

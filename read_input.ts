@@ -249,21 +249,22 @@ namespace InputReading {
 
         for (let residentString of residentStrings) {
             residentString = residentString.trim();
-            const captures: string[] = ROOM_RESIDENCY_REGEX.exec(residentString);
+            const captures: string[] = ROOM_RESIDENCY_REGEX.exec(residentString)!;
             if (captures == null) {
                 throw `Room residency value does not match regex; value "${residentString}", column ${columnIndex}, row ${rowIndex}`;
             }
             const name: string = captures[1].trim();
             const costRatioStr: string = captures[2] !== undefined ? captures[2].trim() : '';
             const costRatio: number|null = costRatioStr !== '' ? Number(costRatioStr) : null;
-            if (costRatio === NaN) {
+            if (Number.isNaN(costRatio)) {
                 throw `Invalid cost ratio "${costRatio}"; must be 0.#, column ${columnIndex}, row ${rowIndex}`;
             }
             Logger.log(`${name} pays ${costRatio === null ? '<default>' : costRatio} of ${roomName}`);
             residents.push(new RoomResident(name, costRatio));
 
-            roomCostRatioSum += costRatio;
-            if (costRatio === null) {
+            if (costRatio !== null) {
+                roomCostRatioSum += costRatio;
+            } else {
                 defaultRatioResidents.push(residents.length - 1);
             }
         }

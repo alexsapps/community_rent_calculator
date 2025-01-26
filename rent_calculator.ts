@@ -56,12 +56,17 @@ namespace RentCalculation {
             let costSubtotal = 0;
             let totalResidents = 0;
             for (const room of periodInput.roomResidency) {
-                const basePrice = config.rooms.find(r => r.name === room.roomName).basePrice;
+                const basePrice = config.rooms.find(r => r.name === room.roomName)!.basePrice;
                 const basePriceWithPerPersonFees =
                     basePrice
                     + (config.extraPersonBaseSurcharge * (room.residents.length - 1));
                 for (const resident of room.residents) {
-                    const residentSubtotal = basePriceWithPerPersonFees * resident.costRatio * periodMonthRatio;
+                    let residentSubtotal;
+                    if (resident.costRatio === null) {
+                        residentSubtotal = 0;
+                    } else {
+                        residentSubtotal  = basePriceWithPerPersonFees * resident.costRatio * periodMonthRatio;
+                    }
 
                     residentSubtotals.push(new ResidentPeriodSubtotal(
                         resident.residentName,

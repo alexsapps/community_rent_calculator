@@ -58,7 +58,7 @@ namespace Models {
              * For example, 0.5 for a resident splitting a room 50/50 with someone
              * else.
              */
-            public readonly costRatio: number,
+            public readonly costRatio: number|null,
         ) { }
     }
 
@@ -138,7 +138,7 @@ namespace Models {
 
             public readonly roomBasePrice: number,
             public readonly roomBasePriceWithExtraPersonFees: number,
-            public readonly residentRoomProportion: number,
+            public readonly residentRoomProportion: number|null,
             public readonly periodMonthProportion: number,
         ) { }
     }

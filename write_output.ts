@@ -8,6 +8,9 @@ namespace OutputWriting {
 
     const DOLLAR_FORMAT = '$#,##0.00_)';
     const RATIO_FORMAT = '#,####0.0000_)';
+    // Splitwise expects "$" not to be entered into textboxes. Excluding it
+    // allows cell data to be copied and pasted into splitwise as-is.
+    const SPLITWISE_DOLLAR_FORMAT = '#0.00';
     export const OUTPUT_MARKER = "OUTPUT >";
 
     export function WriteOutput(output: RentOutput, sheet: Sheet, columnIndex: number) {
@@ -73,7 +76,7 @@ namespace OutputWriting {
         sheet.getRange(rowIndex, columnIndex, numResidents, 2)
             .setValues(dataValues);
         sheet.getRange(rowIndex, columnIndex + 1, numResidents, 1)
-            .setNumberFormat(DOLLAR_FORMAT)
+            .setNumberFormat(SPLITWISE_DOLLAR_FORMAT)
 
         rowIndex += numResidents;
 

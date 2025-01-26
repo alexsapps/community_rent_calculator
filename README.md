@@ -20,3 +20,23 @@ Push according to .clasp.json
 ```bash
 npx clasp push
 ```
+
+## Initial setup
+
+Create a spreadsheet and click Extensions -> Apps Script to create an
+Apps Script project. Note the spreadsheet ID from the URL of the spredsheet
+and note the script ID from the URL of the Apps Script editor.
+
+Create a file called .clasp.json in this project with the contents below making
+the required substitutions.
+
+```json
+{
+    "rootDir":"/workspaces/community_rent_calculator",
+    "scriptId":"<APPS SCRIPT PROJECT ID HERE>",
+    "parentId":["<SPREADSHEET ID HERE>"]
+}
+```
+
+If using the devcontainer, the `rootDir` will be correct. Otherwise, use
+the path to the root of this repo on your machine.

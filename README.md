@@ -6,3 +6,17 @@ Rent calculator for community living arrangements
 ```bash
 npm i
 ```
+
+## Deploy
+
+Make sure you're logged in.
+
+```bash
+npx clasp login
+```
+
+Push according to .clasp.json
+
+```bash
+npx clasp push
+```

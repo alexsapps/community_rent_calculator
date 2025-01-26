@@ -40,3 +40,10 @@ the required substitutions.
 
 If using the devcontainer, the `rootDir` will be correct. Otherwise, use
 the path to the root of this repo on your machine.
+
+Now you can deploy using the instructions under the "Deploy" section of this
+README.
+
+Use the `Rent Calculator` menu created by this sheet to set up a new sheet.
+
+See the comments in `read_input.ts` for detailed usage instructions.

@@ -15,15 +15,24 @@ namespace Main {
 
         OutputWriting.WriteOutput(output, sheet, columnIndex);
     }
+
+    export function CreateRentSheet() {
+        NewSheetSetup.SetUpSheet();
+    }
 }
 
 function CalculateRentForActiveSheet() {
     Main.CalculateRentForActiveSheet();
 }
 
+function CreateRentSheet() {
+    Main.CreateRentSheet();
+}
+
 function onOpen() {
     var ui = SpreadsheetApp.getUi();
     ui.createMenu('Rent Calculator')
         .addItem('Calculate current sheet', 'CalculateRentForActiveSheet')
+        .addItem('Set up current sheet as new', 'CreateRentSheet')
         .addToUi();
 }

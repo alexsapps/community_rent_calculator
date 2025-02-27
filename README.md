@@ -23,6 +23,11 @@ Push according to .clasp.json
 npx clasp push
 ```
 
+Then, in the Apps Script editor UI, click the "..." next to "models.gs" and
+click "Move file up" and repeat this until it appears above all other `.gs`
+files. This is necessary because other files import types from this file as
+soon as they load.
+
 ## Initial setup
 
 Create a spreadsheet and click Extensions -> Apps Script to create an

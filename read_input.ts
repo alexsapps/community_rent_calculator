@@ -10,6 +10,8 @@ namespace InputReading {
     const RoomResidency = Models.RoomResidency;
     type RoomResident = Models.RoomResident;
     const RoomResident = Models.RoomResident;
+    type Month = Models.Month;
+    const Month = Models.Month;
 
     type Sheet = GoogleAppsScript.Spreadsheet.Sheet;
     type Range = GoogleAppsScript.Spreadsheet.Range;
@@ -63,9 +65,10 @@ namespace InputReading {
         // Read column readers
         // ==================================
 
-        verifyHeaders(range);
+        verifyStaticHeaders(range);
 
-        const periodDates: Date[] = readPeriodDatesFromRowHeaders(range);
+        const month = monthFromString(sheet.getName());
+        const periodDates: Date[] = readPeriodDatesFromRowHeaders(range, month);
 
         // ==================================
         // Read columns A & B
@@ -95,7 +98,7 @@ namespace InputReading {
         };
     }
 
-    function verifyHeaders(range: Range) {
+    function verifyStaticHeaders(range: Range) {
         const headerA = range.getCell(1, 1);
         if (headerA.getValue() !== "Rooms") {
             throw 'A1 must be "Rooms"';
@@ -107,7 +110,16 @@ namespace InputReading {
         }
     }
 
-    function readPeriodDatesFromRowHeaders(range: Range): Date[] {
+    function monthFromString(str: string) {
+        const [year, month, day] = str.split('-').map(Number);
+        if (isNaN(year) || isNaN(month) || day !== 1) {
+            throw new Error(`Invalid month format. Expected YYYY-MM-01, got: ${str}`);
+        }
+
+        return new Month(year, month);
+    }
+
+    function readPeriodDatesFromRowHeaders(range: Range, expectedMonth: Month): Date[] {
         const periodDates = new Array<Date>();
         let columnIndex = FIRST_PERIOD_COLUMN_INDEX;
         while (columnIndex <= range.getLastColumn()) {
@@ -116,6 +128,10 @@ namespace InputReading {
             if (header instanceof Date) {
                 periodDates.push(header);
                 Logger.log(`Read period starting ${header.toLocaleDateString()}`);
+
+                if (!expectedMonth.containsDay(header)) {
+                    throw `Period ${header.toLocaleDateString()} does not belong in sheet for ${expectedMonth.toYyyyMmString()}`;
+                }
             } else {
                 if (header !== OutputWriting.OUTPUT_MARKER) {
                     throw `Non-date value found in column ${columnIndex} header; should be start of period: ${header}`

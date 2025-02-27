@@ -1,4 +1,34 @@
 namespace Models {
+    export class Month {
+        constructor(
+            public readonly year: number,
+            public readonly month: number,
+        ) { }
+
+        static fromDate(date: Date): Month {
+            return new Month(date.getFullYear(), date.getMonth() + 1);
+        }
+
+        nextMonth(): Month {
+            if (this.month == 12) {
+                return new Month(this.year + 1, 1);
+            }
+            return new Month(this.year, this.month + 1);
+        }
+        isBefore(other: Month): boolean {
+            return this.year < other.year || (this.year === other.year && this.month < other.month);
+        }
+        isBeforeOrEqual(other: Month): boolean {
+            return this.isBefore(other) || this.year === other.year && this.month === other.month;
+        }
+        containsDay(date: Date): boolean {
+            return this.year === date.getFullYear() && this.month === date.getMonth() + 1;
+        }
+        toYyyyMmString(): string {
+            return `${this.year}-${this.month.toString().padStart(2, '0')}`;
+        }
+    }
+
     /**
      * The entire input for a monthly rent calculation.
      */

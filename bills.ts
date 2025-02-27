@@ -1,4 +1,9 @@
 namespace BillSplitting {
+    type Month = Models.Month;
+    const Month = Models.Month;
+    type MonthRentInput = Models.MonthRentInput;
+    const MonthRentInput = Models.MonthRentInput;
+
     export function SetUpSheet() {
         const sheet = SpreadsheetApp.getActiveSheet();
         sheet.clear();
@@ -16,7 +21,7 @@ namespace BillSplitting {
     class BillsInput {
         constructor(
             public readonly bills: BillInput[],
-            public readonly rentInput: MonthRentInput[]
+            public readonly rentInput: MonthWithRentInput[]
         ) { }
     }
 
@@ -29,35 +34,11 @@ namespace BillSplitting {
         ) { }
     }
 
-    class MonthRentInput {
+    class MonthWithRentInput {
         constructor(
             public readonly month: Month,
-            public readonly rentInput: Models.MonthRentInput,
+            public readonly rentInput: MonthRentInput,
         ) { }
-    }
-
-    class Month {
-        constructor(
-            public readonly year: number,
-            public readonly month: number,
-        ) { }
-
-        static fromDate(date: Date): Month {
-            return new Month(date.getFullYear(), date.getMonth() + 1);
-        }
-
-        nextMonth(): Month {
-            if (this.month == 12) {
-                return new Month(this.year + 1, 1);
-            }
-            return new Month(this.year, this.month + 1);
-        }
-        isBefore(other: Month): boolean {
-            return this.year < other.year || (this.year === other.year && this.month < other.month);
-        }
-        isBeforeOrEqual(other: Month): boolean {
-            return this.isBefore(other) || this.year === other.year && this.month === other.month;
-        }
     }
 
     function numDays(firstDay: Date, lastDay: Date) {
@@ -168,7 +149,7 @@ namespace BillSplitting {
         return bills;
     }
 
-    function readRentSheets(bills: BillInput[], spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet): MonthRentInput[] {
+    function readRentSheets(bills: BillInput[], spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet): MonthWithRentInput[] {
         function firstMonthOfBills(bills: BillInput[]): Month {
             return Month.fromDate(bills.map(u => u.firstDay).reduce((a, b) => a < b ? a : b));
         }
@@ -178,20 +159,19 @@ namespace BillSplitting {
 
         const firstMonth = firstMonthOfBills(bills);
         const lastMonth = lastMonthOfBills(bills);
-        const rentInputs: MonthRentInput[] = [];
+        const rentInputs: MonthWithRentInput[] = [];
 
         if (lastMonth.isBefore(firstMonth)) {
             throw new Error("Last month is before first month");
         }
         for (let month = firstMonth; month.isBeforeOrEqual(lastMonth); month = month.nextMonth()) {
-            const monthString = month.month.toString().padStart(2, '0');
-            const sheetName = `${month.year}-${monthString}-01`;
+            const sheetName = `${month.toYyyyMmString()}-01`;
             const sheet = spreadsheet.getSheetByName(sheetName);
             if (!sheet) {
                 throw new Error(`Could not find rent sheet with name ${sheetName}`);
             }
             const rentInput = InputReading.ReadInput(sheet).input;
-            rentInputs.push(new MonthRentInput(month, rentInput));
+            rentInputs.push(new MonthWithRentInput(month, rentInput));
         }
 
         return rentInputs;
@@ -201,7 +181,7 @@ namespace BillSplitting {
         return new BillsCalculations(input.bills.map(bill => calculateBill(bill, input.rentInput)));
     }
 
-    function calculateBill(bill: BillInput, rentInput: MonthRentInput[]) {
+    function calculateBill(bill: BillInput, rentInput: MonthWithRentInput[]) {
         const periods: PeriodCalculation[] = calculatePeriods(bill, rentInput);
         const roommateAmounts = calculateRoommateTotals(periods);
         const calculation = new BillCalculation(
@@ -215,7 +195,7 @@ namespace BillSplitting {
         return calculation;
     }
 
-    function calculatePeriods(bill: BillInput, rentInputs: MonthRentInput[]): PeriodCalculation[] {
+    function calculatePeriods(bill: BillInput, rentInputs: MonthWithRentInput[]): PeriodCalculation[] {
         const dailyRate = bill.amount / numDays(bill.firstDay, bill.lastDay);
         const periods: PeriodCalculation[] = [];
         const firstMonth = Month.fromDate(bill.firstDay);

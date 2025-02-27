@@ -3,6 +3,8 @@ Rent calculator for community living arrangements
 
 ## Build
 
+Install dependencies:
+
 ```bash
 npm i
 ```

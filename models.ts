@@ -2,7 +2,7 @@ namespace Models {
     /**
      * The entire input for a monthly rent calculation.
      */
-    export class RentInput {
+    export class MonthRentInput {
         constructor(
             public readonly periods: PeriodInput[],
             public readonly config: RentConfiguration,

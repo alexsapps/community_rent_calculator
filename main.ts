@@ -19,6 +19,14 @@ namespace Main {
     export function CreateRentSheet() {
         NewSheetSetup.SetUpSheet();
     }
+
+    export function CreateBillSplittingSheet() {
+        BillSplitting.SetUpSheet();
+    }
+
+    export function CalculateBillSplittingSheet() {
+        BillSplitting.CalculateBills();
+    }
 }
 
 function CalculateRentForActiveSheet() {
@@ -29,10 +37,20 @@ function CreateRentSheet() {
     Main.CreateRentSheet();
 }
 
+function CreateBillSplittingSheet() {
+    Main.CreateBillSplittingSheet();
+}
+
+function CalculateBillSplittingSheet() {
+    Main.CalculateBillSplittingSheet();
+}
+
 function onOpen() {
     var ui = SpreadsheetApp.getUi();
     ui.createMenu('Rent Calculator')
-        .addItem('Calculate current sheet', 'CalculateRentForActiveSheet')
-        .addItem('Set up current sheet as new', 'CreateRentSheet')
+        .addItem('Calculate current rent sheet', 'CalculateRentForActiveSheet')
+        .addItem('Set up current sheet as new rent sheet', 'CreateRentSheet')
+        .addItem('Calculate current bill splitting sheet', 'CalculateBillSplittingSheet')
+        .addItem('Set up current sheet as new bill splitting sheet', 'CreateBillSplittingSheet')
         .addToUi();
 }

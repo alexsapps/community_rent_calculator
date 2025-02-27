@@ -2,8 +2,8 @@ namespace InputReading {
     type PeriodInput = Models.PeriodInput;
     const PeriodInput = Models.PeriodInput;
     const RentConfiguration = Models.RentConfiguration;
-    type RentInput = Models.RentInput;
-    const RentInput = Models.RentInput;
+    type RentInput = Models.MonthRentInput;
+    const RentInput = Models.MonthRentInput;
     type RoomConfiguration = Models.RoomConfiguration;
     const RoomConfiguration = Models.RoomConfiguration;
     type RoomResidency = Models.RoomResidency;

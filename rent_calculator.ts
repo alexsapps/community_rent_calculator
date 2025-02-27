@@ -1,8 +1,8 @@
 namespace RentCalculation {
     const PeriodInput = Models.PeriodInput;
     type PeriodInput = Models.PeriodInput;
-    const RentInput = Models.RentInput;
-    type RentInput = Models.RentInput;
+    const RentInput = Models.MonthRentInput;
+    type RentInput = Models.MonthRentInput;
     const PeriodOutput = Models.PeriodOutput;
     type PeriodOutput = Models.PeriodOutput;
     const MonthTotals = Models.MonthTotals;

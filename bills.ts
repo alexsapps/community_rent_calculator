@@ -110,10 +110,32 @@ namespace BillSplitting {
 
     export function CalculateBills() {
         const spreadsheet = SpreadsheetApp.getActive();
+        checkTimezone(spreadsheet);
+
         const sheet = SpreadsheetApp.getActiveSheet();
         const bills = readBills(sheet, spreadsheet);
         const calculations = calculateBills(bills);
         writeBillsCalculations(calculations, sheet);
+    }
+
+    /**
+     * Makes sure the Google Apps Script environment's timezone matches the
+     * timezone of the given spreadsheet. Without this, dates read from the
+     * sheet may not align properly with auto-generated dates
+     * such as auto-calculated ("last day of the month").
+     *
+     * Fixing this in code may be possible, but Javascript `Date` implementation
+     * is known to be problematic, so a proper fix would involve importing
+     * another date library.
+     */
+    function checkTimezone(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet) {
+        const scriptProperties = PropertiesService.getScriptProperties();
+        const scriptTimeZone = scriptProperties.getProperty("timezone") || Session.getScriptTimeZone();
+        const spreadsheetTimeZone = spreadsheet.getSpreadsheetTimeZone();
+
+        if (scriptTimeZone !== spreadsheetTimeZone) {
+            throw new Error(`Timezone mismatch: Script timezone is ${scriptTimeZone}, but spreadsheet timezone is ${spreadsheetTimeZone}`);
+        }
     }
 
     function readBills(sheet: GoogleAppsScript.Spreadsheet.Sheet, spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet): BillsInput {
